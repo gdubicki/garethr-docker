@@ -143,7 +143,7 @@ describe 'docker::image', :type => :define do
 
   context 'with image_prune => true and image_tag => precise' do
     let(:params) { { 'image_prune' => true , 'image_tag' => 'precise'} }
-    it { should contain_exec('docker rmi -f $(docker images | grep -v IMAGE | grep 'base' | grep -v -P 'base\s+precise' | awk '{print \$3}')') }
+    it { should contain_exec('docker rmi -f $(docker images | egrep '^(docker.io/)?base ' | grep -v -P 'base\s+precise' | awk '{ print \$3 }')') }
   end
 
 end
