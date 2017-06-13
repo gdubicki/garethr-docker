@@ -121,7 +121,7 @@ define docker::image(
 
   if $image_tag {
     # remove images with same image name, but other tags than given
-    $images_to_prune = "${docker_command} images | egrep '^(docker.io/)?${image} ' | grep -v -P '${image}\s+${image_tag}' | awk '{ print \$3 }')"
+    $images_to_prune = "${docker_command} images | egrep '^(docker.io/)?${image} ' | grep -v -P '${image}\\s+${image_tag}' | awk '{ print \$3 }')"
 
     $images_prune = "${docker_command} rmi -f $($images_to_prune)"
 
