@@ -120,9 +120,13 @@ define docker::image(
   }
 
   if $image_tag {
-    $image_prune   = "${docker_command} rmi -f $(${docker_command} images | grep -v -P '(IMAGE|${image}\s+${image_tag})' | awk '{print \$3}')"
+    # remove images with same image name, but other tags than given
+    $images_to_prune = "${docker_command} images | grep -v IMAGE \
+                        | grep '${image}' | grep -v -P '${image}\s+${image_tag}' | awk '{print \$3}')"
 
-    exec { $image_prune:
+    $images_prune = "${docker_command} rmi -f $($images_to_prune)"
+
+    exec { $images_prune:
       environment => 'HOME=/root',
       path        => ['/bin', '/usr/bin'],
       timeout     => 0,
