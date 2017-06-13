@@ -14,6 +14,9 @@
 # [*image_tag*]
 #   If you want a specific tag of the image to be installed
 #
+# [*image_prune*]
+#   If you want to remove all the images except the specified tag
+#
 # [*docker_file*]
 #   If you want to add a docker image from specific docker file
 #
@@ -24,6 +27,7 @@ define docker::image(
   $ensure    = 'present',
   $image     = $title,
   $image_tag = undef,
+  $image_prune = false,
   $force     = false,
   $docker_file = undef,
   $docker_dir = undef,
@@ -33,6 +37,7 @@ define docker::image(
   $docker_command = $docker::params::docker_command
   validate_re($ensure, '^(present|absent|latest)$')
   validate_re($image, '^[\S]*$')
+  validate_bool($image_prune)
   validate_bool($force)
 
   # Wrapper used to ensure images are up to date
@@ -45,6 +50,10 @@ define docker::image(
       content => template('docker/update_docker_image.sh.erb'),
     }
   )
+
+  if ($image_prune) and (!$image_tag) {
+    fail 'docker::image $image_prune requires $image_tag to be set'
+  }
 
   if ($docker_file) and ($docker_dir) {
     fail 'docker::image must not have both $docker_file and $docker_dir set'
@@ -68,10 +77,11 @@ define docker::image(
     $image_arg     = "${image}:${image_tag}"
     $image_remove  = "${docker_command} rmi ${image_force}${image}:${image_tag}"
     $image_find    = "${docker_command} images | egrep '^(docker.io/)?${image} ' | awk '{ print \$2 }' | grep ^${image_tag}$"
+
   } else {
     $image_arg     = $image
     $image_remove  = "${docker_command} rmi ${image_force}${image}"
-    $image_find    = "${docker_command} images | cut -d ' ' -f 1 | egrep '^(docker\\.io/)?${image}$'"
+    $image_find    = "${docker_command} rmi $(${docker_command} images | cut -d ' ' -f 1 | egrep '^(docker\\.io/)?${image}$'"
   }
 
   if $docker_dir {
@@ -109,4 +119,13 @@ define docker::image(
     }
   }
 
+  if $image_tag {
+    $image_prune   = "${docker_command} rmi -f $(${docker_command} images | grep -v -P '(IMAGE|${image}\s+${image_tag})' | awk '{print \$3}')"
+
+    exec { $image_prune:
+      environment => 'HOME=/root',
+      path        => ['/bin', '/usr/bin'],
+      timeout     => 0,
+    }
+  }
 }
