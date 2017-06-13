@@ -120,7 +120,7 @@ define docker::image(
   }
 
   if $image_tag {
-    # remove images with same image name, but other tags than given
+    # get images with same image name, but other tags than given
     $images_to_prune = "${docker_command} images | egrep '^(docker.io/)?${image} ' | grep -v -P '${image}\\s+${image_tag}' | awk '{ print \$3 }'"
 
     $images_prune = "${docker_command} rmi -f $($images_to_prune)"
@@ -129,6 +129,7 @@ define docker::image(
       environment => 'HOME=/root',
       path        => ['/bin', '/usr/bin'],
       timeout     => 0,
+      onlyif      => "$images_to_prune | grep -P '.'",
     }
   }
 }
